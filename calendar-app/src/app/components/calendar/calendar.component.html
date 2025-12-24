@@ -13,24 +13,58 @@
     </div>
   </header>
 
-  <div class="calendar-grid">
-    @for (day of weekDays(); track day.dateString) {
-      <div class="day-column" [class.today]="day.isToday">
-        <div class="day-header">
+  <!-- Day headers (fixed, not scrolling) -->
+  <div class="week-header">
+    <div class="time-column-spacer"></div>
+    <div class="day-headers-grid">
+      @for (day of weekDays(); track day.dateString) {
+        <div class="day-header" [class.today]="day.isToday">
           <span class="day-name">{{ day.dayName }}</span>
           <span class="day-date" [class.today-date]="day.isToday">{{ day.date.getDate() }}</span>
         </div>
-        <div class="day-events">
-          @for (event of getEventsForDate(day.dateString); track event.id) {
-            <app-event-item
-              [event]="event"
-              (delete)="onDeleteEvent($event)">
-            </app-event-item>
-          }
-          <button class="add-event-btn" (click)="openEventForm(day.dateString)">+</button>
+      }
+    </div>
+    <div class="scrollbar-spacer"></div>
+  </div>
+
+  <!-- Scrollable time grid -->
+  <div class="week-view-body">
+    <!-- Time labels column -->
+    <div class="time-column">
+      @for (hour of hours; track hour) {
+        <div class="time-slot-label">
+          {{ formatHour(hour) }}
         </div>
-      </div>
-    }
+      }
+    </div>
+
+    <!-- Days grid -->
+    <div class="days-grid">
+      @for (day of weekDays(); track day.dateString) {
+        <div class="day-column-body" [class.today]="day.isToday" (dblclick)="openEventForm(day.dateString)">
+          <!-- Hour grid lines -->
+          @for (hour of hours; track hour) {
+            <div class="hour-line" [style.top.px]="hour * 60"></div>
+          }
+
+          <!-- Positioned events -->
+          @for (posEvent of getPositionedEventsForDate(day.dateString); track posEvent.event.id) {
+            <div
+              class="positioned-event"
+              [style.top.px]="posEvent.top"
+              [style.height.px]="posEvent.height"
+              [style.left.%]="posEvent.left"
+              [style.width.%]="posEvent.width">
+              <div class="event-title">{{ posEvent.event.title }}</div>
+              @if (posEvent.height > 30) {
+                <div class="event-time">{{ formatTime(posEvent.event.startTime) }}</div>
+              }
+              <button class="event-delete-btn" (click)="onDeleteEvent(posEvent.event.id); $event.stopPropagation()">×</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
   </div>
 </div>
 

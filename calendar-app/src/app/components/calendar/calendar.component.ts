@@ -2,21 +2,34 @@ import { Component, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EventService } from '../../services/event.service';
 import { EventFormComponent } from '../event-form/event-form.component';
-import { EventItemComponent } from '../event-item/event-item.component';
 import { ThemeToggleComponent } from '../theme-toggle/theme-toggle.component';
 import { CalendarEvent } from '../../models/event.model';
+
+interface PositionedEvent {
+  event: CalendarEvent;
+  top: number;
+  height: number;
+  left: number;
+  width: number;
+  column: number;
+  totalColumns: number;
+}
 
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [CommonModule, EventFormComponent, EventItemComponent, ThemeToggleComponent],
+  imports: [CommonModule, EventFormComponent, ThemeToggleComponent],
   templateUrl: './calendar.component.html',
   styleUrl: './calendar.component.css'
 })
 export class CalendarComponent {
+  private readonly HOUR_HEIGHT = 60;
+
   showEventForm = signal(false);
   selectedDate = signal<string | null>(null);
   currentWeekStart = signal(this.getWeekStart(new Date()));
+
+  readonly hours = Array.from({ length: 24 }, (_, i) => i);
 
   weekDays = computed(() => {
     const days: { date: Date; dateString: string; dayName: string; isToday: boolean }[] = [];
@@ -56,8 +69,7 @@ export class CalendarComponent {
   private getWeekStart(date: Date): Date {
     const d = new Date(date);
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Monday start
-    d.setDate(diff);
+    d.setDate(d.getDate() - day);
     d.setHours(0, 0, 0, 0);
     return d;
   }
@@ -69,6 +81,99 @@ export class CalendarComponent {
   private isToday(date: Date): boolean {
     const today = new Date();
     return date.toDateString() === today.toDateString();
+  }
+
+  private timeToMinutes(time: string): number {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
+
+  private minutesToPx(minutes: number): number {
+    return (minutes / 60) * this.HOUR_HEIGHT;
+  }
+
+  formatHour(hour: number): string {
+    if (hour === 0) return '12 AM';
+    if (hour === 12) return '12 PM';
+    return hour < 12 ? `${hour} AM` : `${hour - 12} PM`;
+  }
+
+  formatTime(time: string): string {
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  }
+
+  private eventsOverlap(a: CalendarEvent, b: CalendarEvent): boolean {
+    const aStart = this.timeToMinutes(a.startTime);
+    const aEnd = this.timeToMinutes(a.endTime);
+    const bStart = this.timeToMinutes(b.startTime);
+    const bEnd = this.timeToMinutes(b.endTime);
+    return aStart < bEnd && bStart < aEnd;
+  }
+
+  getPositionedEventsForDate(dateString: string): PositionedEvent[] {
+    const events = this.eventService.events().filter(e => e.date === dateString);
+
+    if (events.length === 0) return [];
+
+    const sorted = [...events].sort((a, b) => {
+      const aStart = this.timeToMinutes(a.startTime);
+      const bStart = this.timeToMinutes(b.startTime);
+      if (aStart !== bStart) return aStart - bStart;
+
+      const aDuration = this.timeToMinutes(a.endTime) - aStart;
+      const bDuration = this.timeToMinutes(b.endTime) - bStart;
+      return bDuration - aDuration;
+    });
+
+    const positioned: PositionedEvent[] = [];
+    const columns: CalendarEvent[][] = [];
+
+    for (const event of sorted) {
+      const startMinutes = this.timeToMinutes(event.startTime);
+      const endMinutes = this.timeToMinutes(event.endTime);
+      const top = this.minutesToPx(startMinutes);
+      const height = Math.max(this.minutesToPx(endMinutes - startMinutes), 20);
+
+      let placedColumn = -1;
+      for (let col = 0; col < columns.length; col++) {
+        const canPlace = columns[col].every(e => !this.eventsOverlap(e, event));
+        if (canPlace) {
+          columns[col].push(event);
+          placedColumn = col;
+          break;
+        }
+      }
+
+      if (placedColumn === -1) {
+        columns.push([event]);
+        placedColumn = columns.length - 1;
+      }
+
+      positioned.push({
+        event,
+        top,
+        height,
+        column: placedColumn,
+        left: 0,
+        width: 0,
+        totalColumns: 0
+      });
+    }
+
+    const totalColumns = columns.length;
+    const columnWidth = 100 / totalColumns;
+
+    for (const posEvent of positioned) {
+      posEvent.totalColumns = totalColumns;
+      posEvent.width = columnWidth - 1;
+      posEvent.left = posEvent.column * columnWidth;
+    }
+
+    return positioned;
   }
 
   getEventsForDate(dateString: string): CalendarEvent[] {
