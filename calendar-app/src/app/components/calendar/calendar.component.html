@@ -1,0 +1,43 @@
+<div class="calendar-container">
+  <header class="calendar-header">
+    <div class="header-left">
+      <h1>Calendar</h1>
+      <span class="week-label">{{ currentWeekLabel() }}</span>
+    </div>
+    <div class="header-controls">
+      <button class="btn btn-secondary" (click)="previousWeek()">← Prev</button>
+      <button class="btn btn-secondary" (click)="goToToday()">Today</button>
+      <button class="btn btn-secondary" (click)="nextWeek()">Next →</button>
+      <button class="btn btn-primary" (click)="openEventForm()">+ Add Event</button>
+      <app-theme-toggle></app-theme-toggle>
+    </div>
+  </header>
+
+  <div class="calendar-grid">
+    @for (day of weekDays(); track day.dateString) {
+      <div class="day-column" [class.today]="day.isToday">
+        <div class="day-header">
+          <span class="day-name">{{ day.dayName }}</span>
+          <span class="day-date" [class.today-date]="day.isToday">{{ day.date.getDate() }}</span>
+        </div>
+        <div class="day-events">
+          @for (event of getEventsForDate(day.dateString); track event.id) {
+            <app-event-item
+              [event]="event"
+              (delete)="onDeleteEvent($event)">
+            </app-event-item>
+          }
+          <button class="add-event-btn" (click)="openEventForm(day.dateString)">+</button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+@if (showEventForm()) {
+  <app-event-form
+    [preselectedDate]="selectedDate()"
+    (save)="onEventSaved()"
+    (cancel)="closeEventForm()">
+  </app-event-form>
+}

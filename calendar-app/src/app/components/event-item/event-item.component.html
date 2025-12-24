@@ -1,0 +1,7 @@
+<div class="event-item">
+  <div class="event-content">
+    <span class="event-title">{{ event.title }}</span>
+    <span class="event-time">{{ formatTime(event.startTime) }} - {{ formatTime(event.endTime) }}</span>
+  </div>
+  <button class="delete-btn" (click)="onDelete()" title="Delete event">×</button>
+</div>

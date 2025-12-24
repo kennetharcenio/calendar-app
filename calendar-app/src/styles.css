@@ -1,0 +1,88 @@
+/* ===== THEME VARIABLES ===== */
+:root {
+  /* Light theme (default) */
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-primary-light: #f5f3ff;
+
+  --color-bg-page: #f3f4f6;
+  --color-bg-card: #ffffff;
+  --color-bg-card-alt: #f9fafb;
+  --color-bg-today: #faf5ff;
+  --color-bg-today-header: #ede9fe;
+
+  --color-text-primary: #1a1a2e;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6b7280;
+  --color-text-placeholder: #9ca3af;
+
+  --color-border: #e5e7eb;
+  --color-border-light: #d1d5db;
+
+  --color-btn-secondary-bg: #f3f4f6;
+  --color-btn-secondary-hover: #e5e7eb;
+
+  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-shadow: rgba(0, 0, 0, 0.1);
+  --color-shadow-strong: rgba(0, 0, 0, 0.25);
+
+  --color-event-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --color-event-shadow: rgba(102, 126, 234, 0.4);
+
+  --color-input-bg: #ffffff;
+  --color-input-focus-shadow: rgba(79, 70, 229, 0.1);
+}
+
+/* Dark theme overrides */
+.dark-theme {
+  --color-bg-page: #0f0f1a;
+  --color-bg-card: #1a1a2e;
+  --color-bg-card-alt: #1e1e30;
+  --color-bg-today: #1f1d2f;
+  --color-bg-today-header: #2a2844;
+
+  --color-text-primary: #f3f4f6;
+  --color-text-secondary: #d1d5db;
+  --color-text-muted: #9ca3af;
+  --color-text-placeholder: #6b7280;
+
+  --color-border: #2d2d44;
+  --color-border-light: #374151;
+
+  --color-btn-secondary-bg: #252538;
+  --color-btn-secondary-hover: #2d2d44;
+
+  --color-overlay: rgba(0, 0, 0, 0.75);
+  --color-shadow: rgba(0, 0, 0, 0.3);
+  --color-shadow-strong: rgba(0, 0, 0, 0.5);
+
+  --color-event-gradient: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+  --color-event-shadow: rgba(90, 111, 214, 0.5);
+
+  --color-input-bg: #252538;
+  --color-input-focus-shadow: rgba(79, 70, 229, 0.2);
+}
+
+/* ===== GLOBAL STYLES ===== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html, body {
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
