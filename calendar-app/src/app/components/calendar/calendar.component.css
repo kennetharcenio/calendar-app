@@ -68,15 +68,7 @@
   border-bottom: none;
   border-radius: 12px 12px 0 0;
   background: var(--color-bg-card);
-  overflow-y: scroll;
-}
-
-.week-header::-webkit-scrollbar {
-  background: var(--color-bg-card-alt);
-}
-
-.week-header::-webkit-scrollbar-thumb {
-  background: var(--color-bg-card-alt);
+  overflow: hidden;
 }
 
 .scrollbar-spacer {
@@ -141,7 +133,8 @@
 /* ===== SCROLLABLE TIME GRID ===== */
 .week-view-body {
   display: flex;
-  overflow-y: scroll;
+  overflow-y: auto;
+  overflow-x: hidden;
   max-height: calc(100vh - 220px);
   border: 1px solid var(--color-border);
   border-radius: 0 0 12px 12px;
