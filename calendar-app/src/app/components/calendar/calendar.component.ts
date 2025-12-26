@@ -41,6 +41,7 @@ export class CalendarComponent {
   dragPreviewTop = signal<number>(0);
   dragPreviewHeight = signal<number>(0);
   private draggedEventDuration = 0;
+  private hasDragged = false;
 
   weekDays = computed(() => {
     const days: { date: Date; dateString: string; dayName: string; isToday: boolean }[] = [];
@@ -272,13 +273,14 @@ export class CalendarComponent {
     const y = this.getYFromElement(event, container);
     const snappedMinutes = this.snapToGrid(y);
 
+    this.hasDragged = false;
     this.isDragging.set(true);
     this.dragType.set('create');
     this.dragColumnIndex.set(dayIndex);
     this.dragStartY.set(snappedMinutes);
     this.dragCurrentY.set(snappedMinutes);
     this.dragPreviewTop.set(snappedMinutes);
-    this.dragPreviewHeight.set(30);
+    this.dragPreviewHeight.set(0);
   }
 
   onGridMouseMove(event: MouseEvent, dayIndex: number): void {
@@ -292,8 +294,11 @@ export class CalendarComponent {
 
     if (this.dragType() === 'create') {
       const startY = this.dragStartY();
+      if (snappedY !== startY) {
+        this.hasDragged = true;
+      }
       const top = Math.min(startY, snappedY);
-      const height = Math.max(Math.abs(snappedY - startY), 30);
+      const height = Math.abs(snappedY - startY);
       this.dragCurrentY.set(snappedY);
       this.dragPreviewTop.set(top);
       this.dragPreviewHeight.set(height);
@@ -317,21 +322,24 @@ export class CalendarComponent {
     }
 
     if (this.dragType() === 'create') {
+      if (!this.hasDragged) {
+        // Single click - open event form
+        this.resetDragState();
+        this.openEventForm(dateString);
+        return;
+      }
+
       const startY = Math.min(this.dragStartY(), this.dragCurrentY());
       const endY = Math.max(this.dragStartY(), this.dragCurrentY());
-      const height = endY - startY;
+      const startTime = this.minutesToTime(startY);
+      const endTime = this.minutesToTime(Math.max(endY, startY + 30));
 
-      if (height >= 15) {
-        const startTime = this.minutesToTime(startY);
-        const endTime = this.minutesToTime(Math.max(endY, startY + 30));
-
-        this.eventService.addEvent({
-          title: 'New Event',
-          date: dateString,
-          startTime,
-          endTime
-        });
-      }
+      this.eventService.addEvent({
+        title: 'New Event',
+        date: dateString,
+        startTime,
+        endTime
+      });
     } else if (this.dragType() === 'move') {
       const eventId = this.draggedEventId();
       if (eventId) {

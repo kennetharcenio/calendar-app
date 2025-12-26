@@ -44,7 +44,6 @@
         <div
           class="day-column-body"
           [class.today]="day.isToday"
-          (dblclick)="openEventForm(day.dateString)"
           (mousedown)="onGridMouseDown($event, dayIndex)"
           (mousemove)="onGridMouseMove($event, dayIndex)">
           <!-- Hour grid lines -->
