@@ -2,6 +2,7 @@ import { Component, EventEmitter, HostListener, Input, Output, signal } from '@a
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EventService } from '../../services/event.service';
+import { CalendarEvent } from '../../models/event.model';
 
 @Component({
   selector: 'app-event-form',
@@ -12,6 +13,7 @@ import { EventService } from '../../services/event.service';
 })
 export class EventFormComponent {
   @Input() preselectedDate: string | null = null;
+  @Input() editEvent: CalendarEvent | null = null;
   @Output() save = new EventEmitter<void>();
   @Output() cancel = new EventEmitter<void>();
 
@@ -20,10 +22,18 @@ export class EventFormComponent {
   startTime = signal('09:00');
   endTime = signal('10:00');
 
+  isEditMode = false;
+
   constructor(private eventService: EventService) {}
 
   ngOnInit() {
-    if (this.preselectedDate) {
+    if (this.editEvent) {
+      this.isEditMode = true;
+      this.title.set(this.editEvent.title);
+      this.date.set(this.editEvent.date);
+      this.startTime.set(this.editEvent.startTime);
+      this.endTime.set(this.editEvent.endTime);
+    } else if (this.preselectedDate) {
       this.date.set(this.preselectedDate);
     } else {
       this.date.set(new Date().toISOString().split('T')[0]);
@@ -35,12 +45,21 @@ export class EventFormComponent {
       return;
     }
 
-    this.eventService.addEvent({
-      title: this.title(),
-      date: this.date(),
-      startTime: this.startTime(),
-      endTime: this.endTime()
-    });
+    if (this.isEditMode && this.editEvent) {
+      this.eventService.updateEvent(this.editEvent.id, {
+        title: this.title(),
+        date: this.date(),
+        startTime: this.startTime(),
+        endTime: this.endTime()
+      });
+    } else {
+      this.eventService.addEvent({
+        title: this.title(),
+        date: this.date(),
+        startTime: this.startTime(),
+        endTime: this.endTime()
+      });
+    }
 
     this.save.emit();
   }

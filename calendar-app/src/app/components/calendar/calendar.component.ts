@@ -27,6 +27,7 @@ export class CalendarComponent {
 
   showEventForm = signal(false);
   selectedDate = signal<string | null>(null);
+  editingEvent = signal<CalendarEvent | null>(null);
   currentWeekStart = signal(this.getWeekStart(new Date()));
 
   readonly hours = Array.from({ length: 24 }, (_, i) => i);
@@ -212,12 +213,20 @@ export class CalendarComponent {
 
   openEventForm(dateString?: string): void {
     this.selectedDate.set(dateString || null);
+    this.editingEvent.set(null);
+    this.showEventForm.set(true);
+  }
+
+  openEventFormForEdit(event: CalendarEvent): void {
+    this.editingEvent.set(event);
+    this.selectedDate.set(null);
     this.showEventForm.set(true);
   }
 
   closeEventForm(): void {
     this.showEventForm.set(false);
     this.selectedDate.set(null);
+    this.editingEvent.set(null);
   }
 
   onEventSaved(): void {
@@ -255,6 +264,7 @@ export class CalendarComponent {
     const endMin = this.timeToMinutes(calendarEvent.endTime);
     this.draggedEventDuration = endMin - startMin;
 
+    this.hasDragged = false;
     this.isDragging.set(true);
     this.dragType.set('move');
     this.draggedEventId.set(eventId);
@@ -304,6 +314,7 @@ export class CalendarComponent {
       this.dragPreviewHeight.set(height);
       this.dragColumnIndex.set(dayIndex);
     } else if (this.dragType() === 'move') {
+      this.hasDragged = true;
       const newTop = this.snapToGrid(snappedY - this.draggedEventDuration / 2);
       this.dragPreviewTop.set(Math.max(0, newTop));
       this.dragColumnIndex.set(dayIndex);
@@ -343,6 +354,16 @@ export class CalendarComponent {
     } else if (this.dragType() === 'move') {
       const eventId = this.draggedEventId();
       if (eventId) {
+        if (!this.hasDragged) {
+          // Single click on event - open edit form
+          const eventToEdit = this.eventService.events().find(e => e.id === eventId);
+          if (eventToEdit) {
+            this.resetDragState();
+            this.openEventFormForEdit(eventToEdit);
+            return;
+          }
+        }
+
         const newStartMinutes = this.snapToGrid(this.dragPreviewTop());
         const newEndMinutes = newStartMinutes + this.draggedEventDuration;
         const startTime = this.minutesToTime(newStartMinutes);

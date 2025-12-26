@@ -88,6 +88,7 @@
 @if (showEventForm()) {
   <app-event-form
     [preselectedDate]="selectedDate()"
+    [editEvent]="editingEvent()"
     (save)="onEventSaved()"
     (cancel)="closeEventForm()">
   </app-event-form>

@@ -1,6 +1,6 @@
 <div class="modal-overlay" (click)="onOverlayClick($event)">
   <div class="modal-content">
-    <h2>Add New Event</h2>
+    <h2>{{ isEditMode ? 'Edit Event' : 'Add New Event' }}</h2>
 
     <form (ngSubmit)="onSubmit()">
       <div class="form-group">
