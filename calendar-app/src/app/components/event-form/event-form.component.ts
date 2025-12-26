@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EventService } from '../../services/event.service';
@@ -53,5 +53,10 @@ export class EventFormComponent {
     if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
       this.cancel.emit();
     }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    this.cancel.emit();
   }
 }
