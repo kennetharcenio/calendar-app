@@ -35,6 +35,14 @@ export class EventService {
     this.saveEvents(updated);
   }
 
+  updateEvent(id: string, updates: Partial<Omit<CalendarEvent, 'id'>>): void {
+    const updated = this.eventsSignal().map(e =>
+      e.id === id ? { ...e, ...updates } : e
+    );
+    this.eventsSignal.set(updated);
+    this.saveEvents(updated);
+  }
+
   getEventsForDate(date: string): CalendarEvent[] {
     return this.eventsSignal().filter(e => e.date === date);
   }

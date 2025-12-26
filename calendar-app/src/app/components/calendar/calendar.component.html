@@ -1,4 +1,4 @@
-<div class="calendar-container">
+<div class="calendar-container" [class.is-dragging]="isDragging()">
   <header class="calendar-header">
     <div class="header-left">
       <h1>Calendar</h1>
@@ -40,8 +40,13 @@
 
     <!-- Days grid -->
     <div class="days-grid">
-      @for (day of weekDays(); track day.dateString) {
-        <div class="day-column-body" [class.today]="day.isToday" (dblclick)="openEventForm(day.dateString)">
+      @for (day of weekDays(); track day.dateString; let dayIndex = $index) {
+        <div
+          class="day-column-body"
+          [class.today]="day.isToday"
+          (dblclick)="openEventForm(day.dateString)"
+          (mousedown)="onGridMouseDown($event, dayIndex)"
+          (mousemove)="onGridMouseMove($event, dayIndex)">
           <!-- Hour grid lines -->
           @for (hour of hours; track hour) {
             <div class="hour-line" [style.top.px]="hour * 60"></div>
@@ -51,15 +56,26 @@
           @for (posEvent of getPositionedEventsForDate(day.dateString); track posEvent.event.id) {
             <div
               class="positioned-event"
+              [class.dragging]="draggedEventId() === posEvent.event.id"
               [style.top.px]="posEvent.top"
               [style.height.px]="posEvent.height"
               [style.left.%]="posEvent.left"
-              [style.width.%]="posEvent.width">
+              [style.width.%]="posEvent.width"
+              (mousedown)="onEventMouseDown($event, posEvent.event.id, dayIndex)">
               <div class="event-title">{{ posEvent.event.title }}</div>
               @if (posEvent.height > 30) {
                 <div class="event-time">{{ formatTime(posEvent.event.startTime) }}</div>
               }
               <button class="event-delete-btn" (click)="onDeleteEvent(posEvent.event.id); $event.stopPropagation()">×</button>
+            </div>
+          }
+
+          <!-- Drag preview -->
+          @if (isDragging() && dragColumnIndex() === dayIndex) {
+            <div
+              class="drag-preview"
+              [style.top.px]="dragPreviewTop()"
+              [style.height.px]="dragPreviewHeight()">
             </div>
           }
         </div>

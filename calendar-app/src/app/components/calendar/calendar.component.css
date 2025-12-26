@@ -263,6 +263,27 @@
   background: rgba(0, 0, 0, 0.4);
 }
 
+/* ===== DRAG AND DROP ===== */
+.calendar-container.is-dragging {
+  user-select: none;
+  cursor: grabbing;
+}
+
+.positioned-event.dragging {
+  opacity: 0.5;
+}
+
+.drag-preview {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  background: var(--color-primary);
+  opacity: 0.4;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 5;
+}
+
 /* ===== FOOTER ===== */
 .app-footer {
   position: fixed;

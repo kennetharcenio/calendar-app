@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EventService } from '../../services/event.service';
 import { EventFormComponent } from '../event-form/event-form.component';
@@ -30,6 +30,17 @@ export class CalendarComponent {
   currentWeekStart = signal(this.getWeekStart(new Date()));
 
   readonly hours = Array.from({ length: 24 }, (_, i) => i);
+
+  // Drag state
+  isDragging = signal(false);
+  dragType = signal<'move' | 'create' | null>(null);
+  draggedEventId = signal<string | null>(null);
+  dragColumnIndex = signal<number>(0);
+  dragStartY = signal<number>(0);
+  dragCurrentY = signal<number>(0);
+  dragPreviewTop = signal<number>(0);
+  dragPreviewHeight = signal<number>(0);
+  private draggedEventDuration = 0;
 
   weekDays = computed(() => {
     const days: { date: Date; dateString: string; dayName: string; isToday: boolean }[] = [];
@@ -214,5 +225,146 @@ export class CalendarComponent {
 
   onDeleteEvent(id: string): void {
     this.eventService.deleteEvent(id);
+  }
+
+  // Drag and drop methods
+  private snapToGrid(minutes: number): number {
+    return Math.round(minutes / 15) * 15;
+  }
+
+  private minutesToTime(minutes: number): string {
+    const h = Math.floor(minutes / 60) % 24;
+    const m = minutes % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  }
+
+  private getYFromElement(event: MouseEvent, container: HTMLElement): number {
+    const rect = container.getBoundingClientRect();
+    return event.clientY - rect.top + container.scrollTop;
+  }
+
+  onEventMouseDown(event: MouseEvent, eventId: string, dayIndex: number): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const calendarEvent = this.eventService.events().find(e => e.id === eventId);
+    if (!calendarEvent) return;
+
+    const startMin = this.timeToMinutes(calendarEvent.startTime);
+    const endMin = this.timeToMinutes(calendarEvent.endTime);
+    this.draggedEventDuration = endMin - startMin;
+
+    this.isDragging.set(true);
+    this.dragType.set('move');
+    this.draggedEventId.set(eventId);
+    this.dragColumnIndex.set(dayIndex);
+    this.dragPreviewTop.set(this.minutesToPx(startMin));
+    this.dragPreviewHeight.set(this.minutesToPx(this.draggedEventDuration));
+  }
+
+  onGridMouseDown(event: MouseEvent, dayIndex: number): void {
+    const target = event.target as HTMLElement;
+    if (target.closest('.positioned-event')) return;
+
+    const container = target.closest('.day-column-body') as HTMLElement;
+    if (!container) return;
+
+    const y = this.getYFromElement(event, container);
+    const snappedMinutes = this.snapToGrid(y);
+
+    this.isDragging.set(true);
+    this.dragType.set('create');
+    this.dragColumnIndex.set(dayIndex);
+    this.dragStartY.set(snappedMinutes);
+    this.dragCurrentY.set(snappedMinutes);
+    this.dragPreviewTop.set(snappedMinutes);
+    this.dragPreviewHeight.set(30);
+  }
+
+  onGridMouseMove(event: MouseEvent, dayIndex: number): void {
+    if (!this.isDragging()) return;
+
+    const container = (event.target as HTMLElement).closest('.day-column-body') as HTMLElement;
+    if (!container) return;
+
+    const y = this.getYFromElement(event, container);
+    const snappedY = this.snapToGrid(y);
+
+    if (this.dragType() === 'create') {
+      const startY = this.dragStartY();
+      const top = Math.min(startY, snappedY);
+      const height = Math.max(Math.abs(snappedY - startY), 30);
+      this.dragCurrentY.set(snappedY);
+      this.dragPreviewTop.set(top);
+      this.dragPreviewHeight.set(height);
+      this.dragColumnIndex.set(dayIndex);
+    } else if (this.dragType() === 'move') {
+      const newTop = this.snapToGrid(snappedY - this.draggedEventDuration / 2);
+      this.dragPreviewTop.set(Math.max(0, newTop));
+      this.dragColumnIndex.set(dayIndex);
+    }
+  }
+
+  @HostListener('document:mouseup', ['$event'])
+  onMouseUp(event: MouseEvent): void {
+    if (!this.isDragging()) return;
+
+    const dayIndex = this.dragColumnIndex();
+    const dateString = this.weekDays()[dayIndex]?.dateString;
+    if (!dateString) {
+      this.resetDragState();
+      return;
+    }
+
+    if (this.dragType() === 'create') {
+      const startY = Math.min(this.dragStartY(), this.dragCurrentY());
+      const endY = Math.max(this.dragStartY(), this.dragCurrentY());
+      const height = endY - startY;
+
+      if (height >= 15) {
+        const startTime = this.minutesToTime(startY);
+        const endTime = this.minutesToTime(Math.max(endY, startY + 30));
+
+        this.eventService.addEvent({
+          title: 'New Event',
+          date: dateString,
+          startTime,
+          endTime
+        });
+      }
+    } else if (this.dragType() === 'move') {
+      const eventId = this.draggedEventId();
+      if (eventId) {
+        const newStartMinutes = this.snapToGrid(this.dragPreviewTop());
+        const newEndMinutes = newStartMinutes + this.draggedEventDuration;
+        const startTime = this.minutesToTime(newStartMinutes);
+        const endTime = this.minutesToTime(newEndMinutes);
+
+        this.eventService.updateEvent(eventId, {
+          date: dateString,
+          startTime,
+          endTime
+        });
+      }
+    }
+
+    this.resetDragState();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.isDragging()) {
+      this.resetDragState();
+    }
+  }
+
+  private resetDragState(): void {
+    this.isDragging.set(false);
+    this.dragType.set(null);
+    this.draggedEventId.set(null);
+    this.dragStartY.set(0);
+    this.dragCurrentY.set(0);
+    this.dragPreviewTop.set(0);
+    this.dragPreviewHeight.set(0);
   }
 }
